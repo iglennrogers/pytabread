@@ -1,10 +1,7 @@
-import datetime
-
 from sqlalchemy import Column, Integer, String, DateTime, Sequence
 from sqlalchemy.ext.declarative import declarative_base
 
-from . import uniqueid
-
+from utils import uniqueid
 
 SessionBase = declarative_base()
 ProjectBase = declarative_base()

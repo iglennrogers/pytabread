@@ -2,6 +2,7 @@ import PyQt4.QtGui as QtGui
 import PyQt4.uic as uic
 from PyQt4.QtCore import pyqtSlot
 import requests
+import json
 
 from .config import *
 from utils.functrace import logger, trace_scope
@@ -22,6 +23,7 @@ class ProjectWidget(QtGui.QWidget):
 
     @trace_scope("Open project")
     def open(self, xfer):
+        user = self._get_user_details(xfer["owner"])
         self.editName.setText(xfer["name"])
         self.editDesc.setPlainText(xfer["description"])
         self.tableInfo.setCellWidget(0, 0, QtGui.QLabel("PUID"))
@@ -29,7 +31,7 @@ class ProjectWidget(QtGui.QWidget):
         self.tableInfo.setCellWidget(1, 0, QtGui.QLabel("Creation Date"))
         self.tableInfo.setCellWidget(1, 1, QtGui.QLabel(xfer["creation_date"]))
         self.tableInfo.setCellWidget(2, 0, QtGui.QLabel("Owner"))
-        # self.tableInfo.setCellWidget(2, 1, QtGui.QLabel(xfer["owner"]))
+        self.tableInfo.setCellWidget(2, 1, QtGui.QLabel(user["full_name"]))
         self.tableInfo.setCellWidget(3, 0, QtGui.QLabel("Schema Version"))
         self.tableInfo.setCellWidget(3, 1, QtGui.QLabel(xfer["schema_version"]))
         self.xfer = xfer
@@ -54,4 +56,8 @@ class ProjectWidget(QtGui.QWidget):
             pass
         pass
 
+    @staticmethod
+    def _get_user_details(uuid):
+        resp = requests.get(url_user_resource + "\{0}".format(uuid))
+        return json.loads(resp.body.decode('utf-8'))
 

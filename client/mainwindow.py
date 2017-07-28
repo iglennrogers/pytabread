@@ -15,20 +15,19 @@ from .project import ProjectWidget
 
 
 class MainWindow(QtGui.QMainWindow):
-    # require_userdata_trigger = pyqtSignal()
 
     def __init__(self):
         super(MainWindow, self).__init__()
         uic.loadUi(ui_mainwindow, self)
         self._logger = logger(self.__module__)
-        self.actionNewProject.triggered.connect(self.on_action_newproject_triggered)
+        self.actionNewProject.triggered.connect(self.on_action_new_project_triggered)
         self.actionQuit.triggered.connect(self.on_action_quit_triggered)
         self.menuProject.aboutToShow.connect(self.on_menu_open_triggered)
         self.actionLogin.triggered.connect(self.on_action_login_triggered)
         self.actionLogout.triggered.connect(self.on_action_logout_triggered)
+        self.actionLogout.setEnabled(False)
         #
         self.userdata = XferChangeUser()
-        # self.require_userdata_trigger.connect(self.on_action_login_triggered)
         self.on_action_login_triggered()
         #
         self.project_form = ProjectWidget(self)
@@ -36,28 +35,40 @@ class MainWindow(QtGui.QMainWindow):
         self.show()
     #
 
+    @pyqtSlot()
     @trace_scope("Login triggered")
     def on_action_login_triggered(self):
-        self.menuUser.setTitle("No user")
-        self.menuBar().setEnabled(False)
-        userdlg = ChangeUserDialog(self, self.userdata)
-        if userdlg.exec():
+        login_dlg = ChangeUserDialog(self, self.userdata)
+        if login_dlg.exec():
             self._logger.info("Got user {}".format(self.userdata.name))
-            self.menuBar().setEnabled(True)
             resp = requests.get(url_project_resource, json=self.userdata.to_dict())
             project_list = json.loads(resp.text)
+            self.menuProject.setEnabled(True)
             self.menuOpen.setEnabled(len(project_list) > 0)
             self.menuUser.setTitle(self.userdata.name)
+            self.actionLogin.setEnabled(False)
+            self.actionLogout.setEnabled(True)
         else:
             self._logger.info("No user")
             #
 
+    @pyqtSlot()
+    @trace_scope("Logout triggered")
+    def on_action_logout_triggered(self):
+        self.project_form.close()
+        self.menuUser.setTitle("No user")
+        self.userdata = XferChangeUser()
+        self.menuProject.setEnabled(False)
+        self.actionLogout.setEnabled(False)
+        self.actionLogin.setEnabled(True)
+        self.on_action_login_triggered()
+
     @trace_scope("Close Event")
     def closeEvent(self, event):
         event.accept()
-    #
 
     @pyqtSlot()
+    @trace_scope("Quit triggered")
     def on_action_quit_triggered(self):
         self.actionLogin.triggered.disconnect(self.on_action_login_triggered)
         self.on_action_logout_triggered()
@@ -65,7 +76,7 @@ class MainWindow(QtGui.QMainWindow):
 
     @pyqtSlot()
     @trace_scope("New Project triggered")
-    def on_action_newproject_triggered(self):
+    def on_action_new_project_triggered(self):
         xfer = XferNewProject()
         dlg = NewProjectDialog(self, xfer)
         if dlg.exec():
@@ -73,12 +84,6 @@ class MainWindow(QtGui.QMainWindow):
             doc = xfer.save()
             resp = requests.post(url_project_resource, json=doc)
             print(resp.text)
-
-    @pyqtSlot()
-    @trace_scope("Logout triggered")
-    def on_action_logout_triggered(self):
-        self.project_form.close()
-        self.on_action_login_triggered()
 
     @pyqtSlot()
     @trace_scope("Open menu triggered")
@@ -90,11 +95,11 @@ class MainWindow(QtGui.QMainWindow):
         for project in project_list:
             action = self.menuOpen.addAction(project["name"])
             action.setData(project)
-            action.triggered.connect(self.on_action_openproject_triggered)
+            action.triggered.connect(self.on_action_open_project_triggered)
 
     @pyqtSlot()
     @trace_scope("Open project triggered")
-    def on_action_openproject_triggered(self):
+    def on_action_open_project_triggered(self):
         project = self.sender().data()
         self._logger.info(project)
         self.project_form.open(project)

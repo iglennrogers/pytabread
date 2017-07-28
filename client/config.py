@@ -4,3 +4,4 @@ ui_projectwidget = "client/project.ui"
 ui_change_user = "client/chuser.ui"
 
 url_project_resource = "http://localhost:8000/project"
+url_user_resource = "http://localhost:8000/user"

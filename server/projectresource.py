@@ -49,9 +49,11 @@ class ProjectResource:
         doc = req.context['json']
         xfer = XferNewProject(doc)
         puid = ProjectDb.new_project(xfer)
+        session_db = SessionDb.instance()
+        session_db.register_project(xfer.project_db, puid)
         uuid = doc["uuid"]
         if puid:
-            suid = SessionDb.instance().open_session(puid, uuid)
+            suid = session_db.open_session(puid, uuid)
             doc["suid"] = resp.set_cookie("auth", str(suid))
             resp.status = falcon.HTTP_200
             resp.body = str(puid)

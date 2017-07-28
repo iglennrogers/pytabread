@@ -1,15 +1,15 @@
-import glob
-import falcon
 import datetime
+import glob
 
+import falcon
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, exc
 
+from utils import uniqueid
+from utils.functrace import trace_scope, logger
 from . import config
 from . import tables
 from .projectdb import ProjectDb
-from . import uniqueid
-from utils.functrace import trace_scope, logger
 
 
 class SessionDb:
@@ -55,7 +55,7 @@ class SessionDb:
     @trace_scope("Validate session")
     def validate_session(self, **kwargs):
         timestamp = datetime.datetime.utcnow()
-        row = self.__extract_row(kwargs)
+        row = self._extract_row(kwargs)
         if row.expires < timestamp:
             self.close_session(row=row)
             raise falcon.HTTP_UNAUTHORIZED
@@ -76,14 +76,14 @@ class SessionDb:
 
     @trace_scope("Close session")
     def close_session(self, **kwargs):
-        old_row = self.__extract_row(kwargs)
+        old_row = self._extract_row(kwargs)
         self._session_db.delete(old_row)
         self._session_db.commit()
         self.__remove_project_from_cache(old_row.puid)
 
     @trace_scope("Open session")
     def open_session(self, puid, uuid):
-        row = self.__extract_row(puid=puid, uuid=uuid)
+        row = self._extract_row(puid=puid, uuid=uuid)
         if row:
             self.validate_session(row=row)
             return row.suid
@@ -92,18 +92,18 @@ class SessionDb:
 
     @trace_scope("Get project")
     def get_project(self, suid):
-        row = self.__extract_row(suid=suid)
+        row = self._extract_row(suid=suid)
         self.validate_session(row=row)
         return row.puid
 
     @trace_scope("Get user")
     def get_user(self, suid):
-        row = self.__extract_row(suid=suid)
+        row = self._extract_row(suid=suid)
         self.validate_session(row=row)
         return row.uuid
 
     @trace_scope("Extract row from args")
-    def __extract_row(self, **kwargs):
+    def _extract_row(self, **kwargs):
         self._logger.info(kwargs)
         if "suid" in kwargs:
             suid = kwargs["suid"]
@@ -130,8 +130,9 @@ class SessionDb:
             self.register_project(db_file)
 
     @trace_scope("Register project")
-    def register_project(self, db_file):
-        puid = ProjectDb(db_file).project_uid
+    def register_project(self, db_file, puid=None):
+        if not puid:
+            puid = ProjectDb(db_file).project_uid
         self._project_info[puid] = db_file
 
     @trace_scope("Add project to cache")

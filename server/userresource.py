@@ -6,7 +6,6 @@ from .userdb import UserDb
 from .sessiondb import SessionDb
 
 
-
 class UserResource:
     @trace_scope("on_get")
     @falcon.before(hooks.process_json_request)
